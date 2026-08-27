@@ -3,3 +3,5 @@ django-crispy-forms
 crispy-tailwind
 pillow
 python-telegram-bot
+gunicorn
+whitenoise
