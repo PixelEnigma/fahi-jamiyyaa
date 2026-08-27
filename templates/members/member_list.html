@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block page_title %}Members{% endblock %}
+{% block content %}
+<div class="space-y-4">
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Members</h2>
+            <span class="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 rounded-full">{{ paginator.count }}</span>
+        </div>
+        <div class="flex gap-2">
+            <form method="get" class="flex gap-2">
+                <input type="text" name="q" placeholder="Search name or phone..." value="{{ request.GET.q }}" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none w-44 lg:w-56">
+                <select name="role" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" onchange="this.form.submit()">
+                    <option value="">All Roles</option>
+                    {% for value, label in role_choices %}
+                    <option value="{{ value }}" {% if request.GET.role == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% if request.user.role == 'admin' or request.user.role == 'board' %}
+            <a href="{% url 'member_add' %}" class="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">+ Add</a>
+            {% endif %}
+            <a href="{% url 'member_export_csv' %}" class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">CSV</a>
+        </div>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {% for m in members %}
+        <a href="{% url 'member_detail' m.pk %}" class="group bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all duration-200 {% if not m.is_active_member %}opacity-60{% endif %}">
+            <!-- Top accent bar -->
+            <div class="h-1.5 bg-gradient-to-r from-primary-400 to-primary-600"></div>
+            <div class="p-5">
+                <!-- Avatar & Name -->
+                <div class="flex items-start gap-3">
+                    <div class="relative flex-shrink-0">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-lg shadow-sm shadow-primary-200 dark:shadow-primary-900/30 overflow-hidden">
+                            {% if m.avatar %}
+                            <img src="{{ m.avatar.url }}?v={% now 'U' %}" alt="" class="w-full h-full object-cover">
+                            {% else %}
+                            {{ m.first_name|first|default:m.username|first|upper }}{{ m.last_name|first|upper }}
+                            {% endif %}
+                        </div>
+                        {% if m.is_active_member %}
+                        <div class="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-400 border-2 border-white dark:border-gray-800"></div>
+                        {% endif %}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h3 class="font-semibold text-gray-800 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{{ m.get_full_name|default:m.username }}</h3>
+                        <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span class="text-[11px] font-medium px-2 py-0.5 rounded-full
+                                {% if m.role == 'admin' %}bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-800
+                                {% elif m.role == 'board' %}bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 ring-1 ring-purple-200 dark:ring-purple-800
+                                {% elif m.role == 'treasurer' %}bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-800
+                                {% elif m.role == 'manager' %}bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 ring-1 ring-blue-200 dark:ring-blue-800
+                                {% else %}bg-gray-50 dark:bg-gray-900/30 text-gray-500 dark:text-gray-400 ring-1 ring-gray-200 dark:ring-gray-700{% endif %}">
+                                {{ m.get_role_display }}
+                            </span>
+                            {% if m.service_stars > 0 %}
+                            <span class="text-amber-400 text-xs">{% for i in ""|ljust:m.service_stars %}★{% endfor %}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <!-- Info rows -->
+                <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
+                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <svg class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                        {{ m.phone|default:'—' }}
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <svg class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Joined {{ m.join_date|date:"M Y" }}
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <svg class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                        {{ m.service_years }} yr{{ m.service_years|pluralize }}
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <div class="col-span-full text-center py-16">
+            <div class="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197"/></svg>
+            </div>
+            <p class="text-gray-400 dark:text-gray-500 text-sm">No members found</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% include 'components/pagination.html' %}
+</div>
+{% endblock %}

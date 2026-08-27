@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block page_title %}My Profile{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Profile card -->
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-gradient-to-r from-primary-500 to-primary-700 px-6 py-8 flex items-center gap-5">
+            {% if request.user.avatar %}
+            <img src="{{ request.user.avatar.url }}?v={% now 'U' %}" alt="" class="w-20 h-20 rounded-full border-4 border-white/30 object-cover">
+            {% else %}
+            <div class="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-2xl border-4 border-white/30">
+                {{ request.user.first_name|first|default:request.user.username|first|upper }}
+            </div>
+            {% endif %}
+            <div class="text-white">
+                <h2 class="text-xl font-bold">{{ request.user.get_full_name|default:request.user.username }}</h2>
+                <p class="text-sm text-white/80 capitalize">{{ request.user.get_role_display }}</p>
+                <p class="text-xs text-white/60 mt-0.5">Member since {{ request.user.join_date|date:"F Y" }}</p>
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="profile_submit" value="1">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-4">Personal Information</h3>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">First Name</label>
+                    {{ profile_form.first_name }}
+                    {% if profile_form.first_name.errors %}<p class="text-xs text-red-500 mt-1">{{ profile_form.first_name.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Last Name</label>
+                    {{ profile_form.last_name }}
+                    {% if profile_form.last_name.errors %}<p class="text-xs text-red-500 mt-1">{{ profile_form.last_name.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Email</label>
+                    {{ profile_form.email }}
+                    {% if profile_form.email.errors %}<p class="text-xs text-red-500 mt-1">{{ profile_form.email.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Phone</label>
+                    {{ profile_form.phone }}
+                    {% if profile_form.phone.errors %}<p class="text-xs text-red-500 mt-1">{{ profile_form.phone.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Profile Photo</label>
+                <div class="flex items-center gap-4">
+                    <div class="flex-1">{{ profile_form.avatar }}</div>
+                    {% if request.user.avatar %}
+                    <img src="{{ request.user.avatar.url }}?v={% now 'U' %}" alt="" class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-600">
+                    {% endif %}
+                </div>
+                {% if profile_form.avatar.errors %}<p class="text-xs text-red-500 mt-1">{{ profile_form.avatar.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="pt-2">
+                <button type="submit" class="px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Save Profile</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Change password -->
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-4">Change Password</h3>
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="password_submit" value="1">
+            <div class="grid sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Current Password</label>
+                    {{ password_form.old_password }}
+                    {% if password_form.old_password.errors %}<p class="text-xs text-red-500 mt-1">{{ password_form.old_password.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">New Password</label>
+                    {{ password_form.new_password1 }}
+                    {% if password_form.new_password1.errors %}<p class="text-xs text-red-500 mt-1">{{ password_form.new_password1.errors.0 }}</p>{% endif %}
+                    {% if password_form.new_password1.help_text %}<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ password_form.new_password1.help_text }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Confirm New Password</label>
+                    {{ password_form.new_password2 }}
+                    {% if password_form.new_password2.errors %}<p class="text-xs text-red-500 mt-1">{{ password_form.new_password2.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+            <div>
+                <button type="submit" class="px-5 py-2 bg-gray-800 dark:bg-gray-700 hover:bg-gray-900 dark:hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors">Change Password</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Account info (read-only) -->
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-4">Account Details</h3>
+        <div class="grid sm:grid-cols-3 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500 dark:text-gray-400">Username</p>
+                <p class="font-medium text-gray-700 dark:text-gray-200">{{ request.user.username }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500 dark:text-gray-400">Role</p>
+                <p class="font-medium text-gray-700 dark:text-gray-200">{{ request.user.get_role_display }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500 dark:text-gray-400">Monthly Dues</p>
+                <p class="font-medium text-gray-700 dark:text-gray-200">{{ request.user.effective_monthly_dues|floatformat:2 }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500 dark:text-gray-400">Status</p>
+                <p class="font-medium {% if request.user.is_active_member %}text-green-600{% else %}text-red-600{% endif %}">{% if request.user.is_active_member %}Active{% else %}Inactive{% endif %}</p>
+            </div>
+            <div>
+                <p class="text-gray-500 dark:text-gray-400">Joined</p>
+                <p class="font-medium text-gray-700 dark:text-gray-200">{{ request.user.join_date|date:"d M Y" }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500 dark:text-gray-400">Service</p>
+                <p class="font-medium text-gray-700 dark:text-gray-200">{{ request.user.service_years }} years</p>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="password"]').forEach(el => {
+        el.classList.add('w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'dark:bg-gray-800', 'dark:text-gray-100', 'dark:border-gray-600', 'rounded-lg', 'text-sm', 'focus:ring-2', 'focus:ring-primary-500', 'focus:border-primary-500', 'outline-none');
+    });
+</script>
+{% endblock %}

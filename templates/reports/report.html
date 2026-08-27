@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Annual Report</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Financial and activity summary for {{ year }}</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <form method="get" class="flex items-center gap-2">
+                <select name="year" onchange="this.form.submit()" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <a href="{% url 'reports_export' %}?year={{ year }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-primary-300 dark:border-primary-700 text-primary-600 dark:text-primary-400 text-sm font-medium rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Total Dues</p>
+            <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ total_dues|floatformat:2 }}</p>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">12 × monthly minimum</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Collected</p>
+            <p class="text-xl font-bold text-green-600">{{ total_collected|floatformat:2 }}</p>
+            <p class="text-[11px] text-green-500 mt-0.5">{{ collection_rate }}% of dues</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Collection Rate</p>
+            <p class="text-xl font-bold {% if collection_rate >= 80 %}text-emerald-600{% elif collection_rate >= 50 %}text-amber-600{% else %}text-red-600{% endif %}">{{ collection_rate }}%</p>
+            <div class="mt-2 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div class="h-full rounded-full {% if collection_rate >= 80 %}bg-emerald-500{% elif collection_rate >= 50 %}bg-amber-500{% else %}bg-red-500{% endif %}" style="width: {{ collection_rate }}%"></div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Expenses</p>
+            <p class="text-xl font-bold text-red-600">{{ total_expenses|floatformat:2 }}</p>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{{ expense_cat_total|floatformat:2 }} categorized</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Net Balance</p>
+            <p class="text-xl font-bold {% if balance >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">{{ balance|floatformat:2 }}</p>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{{ total_collected|floatformat:2 }} collected − {{ total_expenses|floatformat:2 }} spent</p>
+        </div>
+    </div>
+
+    <!-- Monthly table -->
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-100">Monthly Breakdown</h3>
+            <span class="text-xs text-gray-400 dark:text-gray-500">collection rate per month</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800">
+                        <th class="px-5 py-2.5">Month</th>
+                        <th class="px-5 py-2.5 text-right">Dues</th>
+                        <th class="px-5 py-2.5 text-right">Collected</th>
+                        <th class="px-5 py-2.5 text-right">Rate</th>
+                        <th class="px-5 py-2.5 text-right">Expenses</th>
+                        <th class="px-5 py-2.5 text-right">Net</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {% for m in monthly_data %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td class="px-5 py-2.5 font-medium text-gray-700 dark:text-gray-200">{{ m.month }}</td>
+                        <td class="px-5 py-2.5 text-right text-gray-600 dark:text-gray-300">{{ m.total_due|floatformat:2 }}</td>
+                        <td class="px-5 py-2.5 text-right text-green-600">{{ m.collected|floatformat:2 }}</td>
+                        <td class="px-5 py-2.5 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <span class="text-xs {% if m.rate >= 80 %}text-emerald-600{% elif m.rate >= 50 %}text-amber-600{% else %}text-red-600{% endif %}">{{ m.rate }}%</span>
+                                <div class="w-16 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full {% if m.rate >= 80 %}bg-emerald-500{% elif m.rate >= 50 %}bg-amber-500{% else %}bg-red-500{% endif %}" style="width: {{ m.rate }}%"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-5 py-2.5 text-right text-red-600">{{ m.expenses|floatformat:2 }}</td>
+                        <td class="px-5 py-2.5 text-right font-medium {% if m.net >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}">{{ m.net|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-6">
+        <!-- Outstanding dues -->
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800 dark:text-gray-100">Outstanding Dues</h3>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ outstanding_count }} member{{ outstanding_count|pluralize }}</span>
+            </div>
+            <div class="p-5">
+                {% if outstanding %}
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">Unpaid / partial for {{ outstanding_month }} — largest outstanding first</p>
+                <div class="space-y-3">
+                    {% for row in outstanding %}
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-7 h-7 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-300 font-semibold text-xs flex-shrink-0">{{ row.member.first_name|first|default:row.member.username|first|upper }}</div>
+                            <div class="min-w-0">
+                                <a href="{% url 'member_detail' row.member.pk %}" class="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 truncate block">{{ row.member.get_full_name|default:row.member.username }}</a>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500">{{ row.minimum|floatformat:2 }} min · {{ row.paid|floatformat:2 }} paid</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-semibold text-red-600 flex-shrink-0">{{ row.remaining|floatformat:2 }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">All members are up to date for {{ outstanding_month }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Top contributors -->
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="font-semibold text-gray-800 dark:text-gray-100">Top Contributors</h3>
+            </div>
+            <div class="p-5">
+                {% if top_contributors %}
+                <div class="space-y-3">
+                    {% for t in top_contributors %}
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-semibold text-xs flex-shrink-0">{{ t.member.first_name|first|default:t.member.username|first|upper }}</div>
+                            <div class="min-w-0">
+                                <a href="{% url 'member_detail' t.member.pk %}" class="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 truncate block">{{ t.member.get_full_name|default:t.member.username }}</a>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500">{{ t.count }} payment{{ t.count|pluralize }}</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-semibold text-emerald-600 flex-shrink-0">{{ t.total|floatformat:2 }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No payments recorded yet</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Expenses by category -->
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="font-semibold text-gray-800 dark:text-gray-100">Expenses by Category</h3>
+            </div>
+            <div class="p-5">
+                {% if expense_by_category %}
+                <div class="space-y-4">
+                    {% for c in expense_by_category %}
+                    {% widthratio c.total expense_cat_total 100 as pct %}
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-700 dark:text-gray-200 capitalize">{{ c.category }}</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-xs text-gray-400 dark:text-gray-500">{{ c.count }} txn{{ c.count|pluralize }}</span>
+                                <span class="text-sm font-medium text-red-600">{{ c.total|floatformat:2 }}</span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500 w-10 text-right">{{ pct }}%</span>
+                            </div>
+                        </div>
+                        <div class="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full bg-red-500" style="width: {{ pct }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No expenses recorded for {{ year }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Member growth -->
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 class="font-semibold text-gray-800 dark:text-gray-100">Member Growth</h3>
+            </div>
+            <div class="p-5">
+                {% if member_growth %}
+                <div class="space-y-4">
+                    {% for g in member_growth %}
+                    {% widthratio g.count member_growth_max 100 as g_pct %}
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm text-gray-700 dark:text-gray-200">{{ g.year }}</span>
+                            <span class="text-sm font-medium text-primary-600 dark:text-primary-400">{{ g.count }} member{{ g.count|pluralize }}</span>
+                        </div>
+                        <div class="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full bg-primary-500" style="width: {{ g_pct }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No members yet</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Events summary -->
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800 dark:text-gray-100">Events</h3>
+                <span class="text-xs text-gray-400 dark:text-gray-500">{{ event_total }} total</span>
+            </div>
+            <div class="p-5">
+                <div class="space-y-3">
+                    {% for s in event_status %}
+                    <div class="flex items-center justify-between p-2 rounded-lg {% if s.status == 'organized' %}bg-emerald-50 dark:bg-emerald-900/20{% elif s.status == 'cancelled' %}bg-red-50 dark:bg-red-900/20{% else %}bg-sky-50 dark:bg-sky-900/20{% endif %}">
+                        <span class="text-sm text-gray-700 dark:text-gray-200 capitalize">{{ s.status }}</span>
+                        <span class="text-sm font-medium {% if s.status == 'organized' %}text-emerald-600{% elif s.status == 'cancelled' %}text-red-600{% else %}text-sky-600{% endif %}">{{ s.count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-6">No events in {{ year }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sponsors -->
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800 dark:text-gray-100">Sponsors</h3>
+                <span class="text-sm font-semibold text-emerald-600">{{ sponsor_total|floatformat:2 }}</span>
+            </div>
+            <div class="p-5">
+                {% if sponsor_tiers %}
+                <div class="space-y-3 mb-5">
+                    {% for t in sponsor_tiers %}
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-700 dark:text-gray-200 capitalize">{{ t.tier }} <span class="text-xs text-gray-400 dark:text-gray-500">({{ t.count }})</span></span>
+                        <span class="font-medium text-gray-800 dark:text-gray-100">{{ t.total|floatformat:2 }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if sponsors %}
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2 uppercase tracking-wider">Top sponsors</p>
+                <div class="space-y-2">
+                    {% for s in sponsors %}
+                    <div class="flex items-center justify-between">
+                        <a href="{% url 'sponsor_detail' s.pk %}" class="text-sm text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400">{{ s.name }}</a>
+                        <span class="text-sm font-medium text-emerald-600">{{ s.total_contribution|floatformat:2 }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% else %}
+                <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No sponsors yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

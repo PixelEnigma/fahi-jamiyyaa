@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block page_title %}Dues Collection{% endblock %}
+{% block content %}
+<div class="space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <form method="get" class="flex items-center gap-2">
+            <select name="month" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" onchange="this.form.submit()">
+                {% for m in "123456789012" %}
+                <option value="{{ forloop.counter }}" {% if forloop.counter == selected_month %}selected{% endif %}>{{ forloop.counter|stringformat:"02d" }}</option>
+                {% endfor %}
+            </select>
+            <select name="year" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" onchange="this.form.submit()">
+                {% for y in years %}
+                <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+            <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">{{ selected_date|date:"F Y" }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500 ml-2">Due by the {{ due_day }}th of each month</span>
+        </form>
+        <a href="{% url 'payment_list' %}" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 font-medium">All Payments →</a>
+        <a href="{% url 'send_reminders' %}" class="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-medium ml-2" onclick="return confirm('Create reminder notices for unpaid members?')">Send Reminders</a>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Expected (Min)</p>
+            <p class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ total_minimum|floatformat:2 }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Collected</p>
+            <p class="text-xl font-bold text-green-600">{{ total_paid|floatformat:2 }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Pending</p>
+            <p class="text-xl font-bold text-amber-600">{{ total_pending|floatformat:2 }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-gray-800">
+                        <th class="px-4 py-3">Member</th>
+                        <th class="px-4 py-3 text-right">Min Due</th>
+                        <th class="px-4 py-3 text-right">Paid</th>
+                        <th class="px-4 py-3 text-right">Remaining</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {% for row in rows %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors {% if row.status == 'paid' %}bg-green-50/50 dark:bg-green-900/10{% elif row.status == 'partial' %}bg-amber-50/50 dark:bg-amber-900/10{% endif %}">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-300 font-semibold text-xs overflow-hidden flex-shrink-0">
+                                    {% if row.member.avatar %}
+                                    <img src="{{ row.member.avatar.url }}?v={% now 'U' %}" alt="" class="w-full h-full object-cover">
+                                    {% else %}
+                                    {{ row.member.first_name|first|default:row.member.username|first|upper }}
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800 dark:text-gray-100">{{ row.member.get_full_name|default:row.member.username }}</p>
+                                    <p class="text-xs text-gray-400 dark:text-gray-500">{{ row.member.phone|default:'-' }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-right text-sm font-medium">{{ row.minimum|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-right text-sm font-medium {% if row.paid > 0 %}text-green-600{% else %}text-gray-400{% endif %}">{{ row.paid|floatformat:2 }}</td>
+                        <td class="px-4 py-3 text-right text-sm font-medium {% if row.remaining > 0 %}text-red-500{% else %}text-gray-400{% endif %}">{{ row.remaining|floatformat:2 }}</td>
+                        <td class="px-4 py-3">
+                            {% if row.status == 'paid' %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-900/50 px-2.5 py-0.5 rounded-full">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Paid
+                            </span>
+                            {% elif row.status == 'partial' %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-2.5 py-0.5 rounded-full">
+                                Partial
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 text-xs font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-2.5 py-0.5 rounded-full">
+                                Unpaid
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            {% if request.user.role == 'admin' or request.user.role == 'board' or request.user.role == 'treasurer' %}
+                            <button onclick="openPayment('{{ row.member.pk }}', '{{ row.member.get_full_name|default:row.member.username|escapejs }}', '{{ row.minimum|floatformat:2 }}', '{{ row.remaining|floatformat:2 }}')" class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 transition-colors">
+                                {% if row.status == 'paid' %}Add Extra{% else %}Record Payment{% endif %}
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400 dark:text-gray-500 text-sm">No active members</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="payment-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
+    <div class="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg p-6 w-full max-w-sm mx-4">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1" id="modal-title">Record Payment</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4" id="modal-member"></p>
+        <form method="post" action="{% url 'record_payment' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="member_id" id="input-member-id">
+            <input type="hidden" name="month" value="{{ selected_date|date:'Y-m' }}">
+            <div class="mb-3">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Amount</label>
+                <div class="flex items-center gap-2">
+                    <input type="number" step="0.01" min="1" name="amount" id="input-amount" required class="w-full px-3 py-2 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" placeholder="0.00">
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Minimum due: <span id="modal-min"></span> · Remaining: <span id="modal-remaining"></span></p>
+            </div>
+            <div class="mb-3">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Payment Slip (optional)</label>
+                <input type="file" name="receipt" accept="image/*,.pdf" class="w-full px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none file:mr-3 file:py-1 file:px-3 file:border-0 file:bg-primary-50 dark:file:bg-primary-900/50 file:text-primary-700 dark:file:text-primary-300 file:font-medium file:text-xs hover:file:bg-primary-100 dark:hover:file:bg-primary-800">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Notes (optional)</label>
+                <input type="text" name="notes" class="w-full px-3 py-2 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" placeholder="e.g. Extra contribution">
+            </div>
+            <div class="flex gap-3">
+                <button type="submit" class="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Save Payment</button>
+                <button type="button" onclick="closePayment()" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openPayment(memberId, memberName, minDue, remaining) {
+        document.getElementById('input-member-id').value = memberId;
+        document.getElementById('modal-title').textContent = 'Record Payment';
+        document.getElementById('modal-member').textContent = memberName;
+        document.getElementById('modal-min').textContent = minDue;
+        document.getElementById('modal-remaining').textContent = remaining;
+        document.getElementById('input-amount').value = remaining > 0 ? remaining : minDue;
+        document.getElementById('payment-modal').classList.remove('hidden');
+        document.getElementById('payment-modal').classList.add('flex');
+    }
+    function closePayment() {
+        document.getElementById('payment-modal').classList.add('hidden');
+        document.getElementById('payment-modal').classList.remove('flex');
+    }
+    document.getElementById('payment-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) closePayment();
+    });
+</script>
+{% endblock %}

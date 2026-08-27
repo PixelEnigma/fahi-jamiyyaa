@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block page_title %}{{ event.title }}{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    {% if event.image %}
+    <div class="w-full h-56 md:h-72 rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-sm">
+        <img src="{{ event.image.url }}" alt="{{ event.title }}" class="w-full h-full object-cover">
+    </div>
+    {% endif %}
+
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800/90 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 md:p-8">
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-50 font-serif">{{ event.title }}</h2>
+                    <span class="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-semibold
+                        {% if event.status == 'organized' %}bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-200 dark:ring-emerald-800
+                        {% elif event.status == 'cancelled' %}bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 ring-1 ring-red-200 dark:ring-red-800
+                        {% else %}bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300 ring-1 ring-sky-200 dark:ring-sky-800{% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full
+                            {% if event.status == 'organized' %}bg-emerald-500
+                            {% elif event.status == 'cancelled' %}bg-red-500
+                            {% else %}bg-sky-500{% endif %}">
+                        </span>
+                        {{ event.get_status_display }}
+                    </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-gray-500 dark:text-gray-400">
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        {{ event.date|date:"l, F d, Y" }}
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {{ event.date|date:"g:i A" }}
+                    </span>
+                    {% if event.location %}
+                    <span class="flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        {{ event.location }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% if event.organizer %}
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Organized by {{ event.organizer.get_full_name|default:event.organizer.username }}</p>
+                {% endif %}
+            </div>
+            <div class="flex gap-2 flex-shrink-0">
+                {% if event.status == 'planned' and request.user.role == 'admin' or event.status == 'planned' and request.user.role == 'board' or event.status == 'planned' and request.user.role == 'manager' %}
+                <button onclick="openCancelModal()" class="px-3 py-2 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">Cancel</button>
+                {% endif %}
+                {% if request.user.role == 'admin' or request.user.role == 'board' or request.user.role == 'manager' %}
+                <a href="{% url 'event_edit' event.pk %}" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Edit</a>
+                {% endif %}
+                {% if request.user.role == 'admin' or request.user.role == 'board' %}
+                <a href="{% url 'event_delete' event.pk %}" class="px-4 py-2 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">Delete</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if event.description %}
+        <div class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 uppercase tracking-wider mb-3">About</h3>
+            <div class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ event.description }}</div>
+        </div>
+        {% endif %}
+
+        {% if event.outcome_notes %}
+        <div class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 uppercase tracking-wider mb-3">Outcome</h3>
+            <div class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ event.outcome_notes }}</div>
+        </div>
+        {% endif %}
+
+        {% if event.cancellation_reason %}
+        <div class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+            <h3 class="text-sm font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider mb-3">Cancellation Reason</h3>
+            <div class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">{{ event.cancellation_reason }}</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sponsors -->
+    {% if sponsors %}
+    <div class="bg-white dark:bg-gray-800/90 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 md:p-8">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 uppercase tracking-wider mb-4">Sponsors</h3>
+        <div class="flex flex-wrap gap-3">
+            {% for s in sponsors %}
+            <a href="{% url 'sponsor_detail' s.pk %}" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ring-1 ring-gray-200 dark:ring-gray-700 text-sm">
+                <span class="w-6 h-6 rounded-md flex items-center justify-center text-white text-xs font-bold
+                    {% if s.tier == 'platinum' %}bg-slate-700
+                    {% elif s.tier == 'gold' %}bg-yellow-500
+                    {% elif s.tier == 'silver' %}bg-gray-400
+                    {% elif s.tier == 'bronze' %}bg-amber-700
+                    {% else %}bg-primary-400{% endif %}">
+                    {{ s.name|first|upper }}
+                </span>
+                <span class="text-gray-700 dark:text-gray-200 font-medium">{{ s.name }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500">({{ s.get_tier_display }})</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Photo Gallery -->
+    {% if event.status == 'organized' and photos %}
+    <div class="bg-white dark:bg-gray-800/90 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 md:p-8">
+        <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100 uppercase tracking-wider mb-4">Gallery</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {% for photo in photos %}
+            <a href="{{ photo.image.url }}" target="_blank" class="group relative rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 aspect-square">
+                <img src="{{ photo.image.url }}" alt="{{ photo.caption|default:'Event photo' }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                {% if photo.caption %}
+                <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                    <p class="text-xs text-white">{{ photo.caption }}</p>
+                </div>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- CTA for past events with no status update -->
+    {% if event.is_past and event.status == 'planned' and request.user.role == 'admin' or request.user.role == 'board' or request.user.role == 'manager' %}
+    <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-300">
+        This event has passed. <a href="{% url 'event_edit' event.pk %}" class="font-medium underline">Update its status</a> to mark it as organized or cancelled.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Cancel modal -->
+<div id="cancel-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
+    <div class="bg-white dark:bg-gray-800/90 rounded-2xl shadow-lg p-6 w-full max-w-sm mx-4">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">Cancel Event</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Please enter a reason for cancelling <strong>{{ event.title }}</strong>.</p>
+        <form method="post" action="{% url 'event_cancel' event.pk %}">
+            {% csrf_token %}
+            <textarea name="reason" id="cancel-reason" required rows="3" placeholder="e.g. Low registration, venue unavailable, conflict..." class="w-full px-3 py-2 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"></textarea>
+            <div class="flex gap-3 mt-4">
+                <button type="submit" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors">Cancel Event</button>
+                <button type="button" onclick="closeCancelModal()" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Go Back</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openCancelModal() {
+        document.getElementById('cancel-modal').classList.remove('hidden');
+        document.getElementById('cancel-modal').classList.add('flex');
+        document.getElementById('cancel-reason').focus();
+    }
+    function closeCancelModal() {
+        document.getElementById('cancel-modal').classList.add('hidden');
+        document.getElementById('cancel-modal').classList.remove('flex');
+    }
+    document.getElementById('cancel-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeCancelModal();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block page_title %}Inventory{% endblock %}
+{% block content %}
+<div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Inventory Items</h2>
+        <div class="flex gap-3">
+            <form method="get">
+                <select name="status" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" onchange="this.form.submit()">
+                    <option value="">All Status</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% if request.user.role == 'admin' or request.user.role == 'board' or request.user.role == 'manager' %}
+            <a href="{% url 'inventory_add' %}" class="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">+ Add</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-5">
+        {% for item in items %}
+        <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-sm transition-shadow">
+            <div class="flex items-start justify-between">
+                <h3 class="font-medium text-gray-800 dark:text-gray-100">{{ item.name }}</h3>
+                <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {% if item.status == 'available' %}bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300{% elif item.status == 'leased' %}bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300{% elif item.status == 'maintenance' %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300{% else %}bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300{% endif %}">{{ item.get_status_display }}</span>
+            </div>
+            {% if item.description %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ item.description|truncatechars:80 }}</p>{% endif %}
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                <span class="text-sm text-gray-600 dark:text-gray-300">{{ item.available_quantity }}/{{ item.quantity }} available</span>
+                <a href="{% url 'inventory_edit' item.pk %}" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 font-medium">Edit</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-8 text-gray-400 dark:text-gray-500 text-sm">No inventory items</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

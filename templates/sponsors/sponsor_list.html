@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block page_title %}Sponsors{% endblock %}
+{% block content %}
+<div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+    <div class="flex items-center gap-3">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Sponsors</h2>
+        <span class="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2.5 py-0.5 rounded-full">Total: {{ total_contributions|floatformat:2 }}</span>
+    </div>
+    <div class="flex gap-2">
+        <form method="get" class="flex gap-2">
+            <input type="text" name="q" placeholder="Search sponsors..." value="{{ request.GET.q }}" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none w-40">
+            <select name="tier" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" onchange="this.form.submit()">
+                <option value="">All Tiers</option>
+                {% for value, label in tier_choices %}
+                <option value="{{ value }}" {% if request.GET.tier == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% if request.user.role == 'admin' or request.user.role == 'board' or request.user.role == 'treasurer' %}
+        <a href="{% url 'sponsor_add' %}" class="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">+ Add</a>
+        {% endif %}
+    </div>
+</div>
+<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {% for s in sponsors %}
+    <a href="{% url 'sponsor_detail' s.pk %}" class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-sm transition-shadow {% if not s.is_active %}opacity-60{% endif %}">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-bold
+                    {% if s.tier == 'platinum' %}bg-slate-700
+                    {% elif s.tier == 'gold' %}bg-yellow-500
+                    {% elif s.tier == 'silver' %}bg-gray-400
+                    {% elif s.tier == 'bronze' %}bg-amber-700
+                    {% else %}bg-primary-400{% endif %}">
+                    {{ s.name|first|upper }}
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-800 dark:text-gray-100">{{ s.name }}</h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-500">{{ s.get_tier_display }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <span class="text-sm font-medium text-green-600">{{ s.total_contribution|floatformat:2 }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500">{{ s.contributions.count }} contribution(s)</span>
+        </div>
+    </a>
+    {% empty %}
+    <div class="col-span-full text-center py-12 text-gray-400 dark:text-gray-500 text-sm">No sponsors yet</div>
+    {% endfor %}
+</div>
+{% include 'components/pagination.html' %}
+{% endblock %}

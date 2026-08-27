@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block page_title %}{{ sponsor.name }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-xl flex items-center justify-center text-white text-xl font-bold
+                    {% if sponsor.tier == 'platinum' %}bg-slate-700
+                    {% elif sponsor.tier == 'gold' %}bg-yellow-500
+                    {% elif sponsor.tier == 'silver' %}bg-gray-400
+                    {% elif sponsor.tier == 'bronze' %}bg-amber-700
+                    {% else %}bg-primary-400{% endif %}">
+                    {{ sponsor.name|first|upper }}
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">{{ sponsor.name }}</h2>
+                    <span class="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-medium
+                        {% if sponsor.tier == 'platinum' %}bg-slate-100 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300
+                        {% elif sponsor.tier == 'gold' %}bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300
+                        {% elif sponsor.tier == 'silver' %}bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300
+                        {% elif sponsor.tier == 'bronze' %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300
+                        {% else %}bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-300{% endif %}">
+                        {{ sponsor.get_tier_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                {% if request.user.role == 'admin' or request.user.role == 'board' or request.user.role == 'treasurer' %}
+                <a href="{% url 'sponsor_edit' sponsor.pk %}" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">Edit</a>
+                <a href="{% url 'sponsor_delete' sponsor.pk %}" class="px-4 py-2 border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors">Delete</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+            <div><p class="text-xs text-gray-500 dark:text-gray-400">Total Contribution</p><p class="text-lg font-bold text-green-600">{{ sponsor.total_contribution|floatformat:2 }}</p></div>
+            <div><p class="text-xs text-gray-500 dark:text-gray-400">Contact</p><p class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ sponsor.contact_person|default:'-' }}</p></div>
+            <div><p class="text-xs text-gray-500 dark:text-gray-400">Phone</p><p class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ sponsor.phone|default:'-' }}</p></div>
+            <div><p class="text-xs text-gray-500 dark:text-gray-400">Email</p><p class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ sponsor.email|default:'-' }}</p></div>
+            {% if sponsor.event %}
+            <div><p class="text-xs text-gray-500 dark:text-gray-400">Sponsoring</p><p class="text-sm font-medium text-gray-700 dark:text-gray-200"><a href="{% url 'event_detail' sponsor.event.pk %}" class="text-primary-600 hover:underline">{{ sponsor.event.title }}</a></p></div>
+            {% endif %}
+        </div>
+        {% if sponsor.notes %}<p class="text-sm text-gray-600 dark:text-gray-300 mt-4">{{ sponsor.notes }}</p>{% endif %}
+    </div>
+
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-4">Contributions</h3>
+        {% if request.user.role == 'admin' or request.user.role == 'board' or request.user.role == 'treasurer' %}
+        <form method="post" action="{% url 'add_contribution' sponsor.pk %}" class="flex flex-wrap items-end gap-3 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Amount</label>
+                <input type="number" step="0.01" min="0.01" name="amount" required class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none w-32">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Event (optional)</label>
+                <select name="event" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none">
+                    <option value="">— None —</option>
+                    {% for e in events %}<option value="{{ e.pk }}">{{ e.title }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Notes</label>
+                <input type="text" name="notes" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none w-40" placeholder="Optional">
+            </div>
+            <button type="submit" class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">+ Add</button>
+        </form>
+        {% endif %}
+        <div class="space-y-2">
+            {% for c in contributions %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                <div>
+                    <p class="text-sm font-medium text-green-700">{{ c.amount|floatformat:2 }}</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500">{{ c.date|date:"M d, Y" }}{% if c.event %} · {{ c.event.title }}{% endif %}</p>
+                </div>
+                {% if c.notes %}<p class="text-xs text-gray-500 dark:text-gray-400">{{ c.notes }}</p>{% endif %}
+            </div>
+            {% empty %}
+            <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No contributions yet</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

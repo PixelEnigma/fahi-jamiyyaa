@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block page_title %}Events{% endblock %}
+{% block content %}
+<div class="space-y-4">
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Events</h2>
+        <div class="flex gap-2">
+            <form method="get" class="flex gap-2">
+                <input type="text" name="q" placeholder="Search events..." value="{{ request.GET.q }}" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none w-36">
+                <select name="status" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" onchange="this.form.submit()">
+                    <option value="">All</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% if request.user.role == 'admin' or request.user.role == 'board' or request.user.role == 'manager' %}
+            <a href="{% url 'event_add' %}" class="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">+ Add</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {% for event in events %}
+        <a href="{% url 'event_detail' event.pk %}" class="group bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md hover:border-primary-200 dark:hover:border-primary-700 transition-all duration-200">
+            {% if event.image %}
+            <div class="h-36 overflow-hidden bg-gray-100 dark:bg-gray-900">
+                <img src="{{ event.image.url }}" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            </div>
+            {% else %}
+            <div class="h-36 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/40 dark:to-primary-800/40 flex items-center justify-center">
+                <svg class="w-10 h-10 text-primary-300 dark:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            {% endif %}
+            <div class="p-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex flex-col items-center justify-center text-primary-600 dark:text-primary-300 flex-shrink-0">
+                        <span class="text-sm font-bold leading-none">{{ event.date|date:"d" }}</span>
+                        <span class="text-[10px] leading-none mt-0.5">{{ event.date|date:"M" }}</span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-semibold text-gray-800 dark:text-gray-100 truncate group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{{ event.title }}</h3>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold flex-shrink-0
+                                {% if event.status == 'organized' %}bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300
+                                {% elif event.status == 'cancelled' %}bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300
+                                {% else %}bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300{% endif %}">
+                                {{ event.get_status_display }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ event.date|date:"l, g:i A" }}</p>
+                        {% if event.location %}<p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{{ event.location }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% empty %}
+        <div class="col-span-full text-center py-16">
+            <div class="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <p class="text-gray-400 dark:text-gray-500 text-sm">No events found</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% include 'components/pagination.html' %}
+</div>
+{% endblock %}

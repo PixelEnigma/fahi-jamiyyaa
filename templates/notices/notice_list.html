@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block page_title %}Notices{% endblock %}
+{% block content %}
+<div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Announcements</h2>
+        <div class="flex gap-2">
+            <form method="get" class="flex gap-2">
+                <input type="text" name="q" placeholder="Search notices..." value="{{ request.GET.q }}" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none w-36">
+                <select name="priority" class="px-3 py-1.5 border border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none" onchange="this.form.submit()">
+                    <option value="">All</option>
+                    {% for value, label in priority_choices %}
+                    <option value="{{ value }}" {% if request.GET.priority == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% if request.user.role == 'admin' or request.user.role == 'board' or request.user.role == 'manager' %}
+            <a href="{% url 'notice_add' %}" class="px-4 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">+ New</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for notice in notices %}
+        <div class="p-5 {% if notice.pinned %}bg-primary-50/50 dark:bg-primary-900/20{% endif %}">
+            <div class="flex items-start gap-3">
+                <div class="w-2 h-2 rounded-full mt-2 flex-shrink-0 {% if notice.priority == 'urgent' %}bg-red-500{% elif notice.priority == 'high' %}bg-amber-500{% elif notice.priority == 'low' %}bg-gray-300{% else %}bg-primary-500{% endif %}"></div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h3 class="font-medium text-gray-800 dark:text-gray-100">{{ notice.title }}</h3>
+                        {% if notice.pinned %}<span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-300">Pinned</span>{% endif %}
+                        <span class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium {% if notice.priority == 'urgent' %}bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300{% elif notice.priority == 'high' %}bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300{% else %}bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400{% endif %}">{{ notice.get_priority_display }}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 whitespace-pre-line">{{ notice.body }}</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">{% if notice.created_by %}{{ notice.created_by.get_full_name|default:notice.created_by.username }}{% else %}-{% endif %} · {{ notice.created_at|date:"M d, Y · g:i A" }}</p>
+                </div>
+                {% if request.user.role == 'admin' or request.user.role == 'board' %}
+                <div class="flex gap-2 flex-shrink-0">
+                    <a href="{% url 'notice_edit' notice.pk %}" class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 font-medium">Edit</a>
+                    <a href="{% url 'notice_delete' notice.pk %}" class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 font-medium">Delete</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">No notices</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
