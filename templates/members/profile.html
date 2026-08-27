@@ -93,6 +93,37 @@
         </form>
     </div>
 
+    <!-- Telegram Link -->
+    <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-6" id="telegram-section">
+        <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-4">Telegram Bot</h3>
+        {% if request.user.telegram_id %}
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-100">Telegram linked</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">ID: {{ request.user.telegram_id }}</p>
+                </div>
+            </div>
+            <button onclick="unlinkTelegram()" class="px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 text-sm font-medium rounded-lg transition-colors">Unlink</button>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Link your Telegram account to check dues and payment history from the bot.</p>
+        <div id="tg-code-area">
+            <button onclick="generateCode()" id="tg-gen-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">Generate Link Code</button>
+        </div>
+        <div id="tg-code-display" class="hidden mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Send this code to the Telegram bot using <code class="bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 rounded text-xs">/link</code>:</p>
+            <div class="flex items-center gap-3">
+                <span id="tg-code" class="text-2xl font-mono font-bold text-primary-600 dark:text-primary-400 tracking-wider"></span>
+                <button onclick="copyCode()" class="px-3 py-1 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 text-xs font-medium rounded-lg transition-colors">Copy</button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Account info (read-only) -->
     <div class="bg-white dark:bg-gray-800/90 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         <h3 class="font-semibold text-gray-800 dark:text-gray-100 mb-4">Account Details</h3>
@@ -128,5 +159,46 @@
     document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="password"]').forEach(el => {
         el.classList.add('w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'dark:bg-gray-800', 'dark:text-gray-100', 'dark:border-gray-600', 'rounded-lg', 'text-sm', 'focus:ring-2', 'focus:ring-primary-500', 'focus:border-primary-500', 'outline-none');
     });
+
+    function getCookie(name) {
+        let v = null;
+        document.cookie.split(';').forEach(c => {
+            c = c.trim();
+            if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+        });
+        return v;
+    }
+
+    async function generateCode() {
+        const btn = document.getElementById('tg-gen-btn');
+        btn.disabled = true;
+        btn.textContent = 'Generating...';
+        const resp = await fetch('{% url "telegram_generate_code" %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')},
+        });
+        const data = await resp.json();
+        document.getElementById('tg-code').textContent = data.code;
+        document.getElementById('tg-code-display').classList.remove('hidden');
+        btn.textContent = 'Regenerate Code';
+        btn.disabled = false;
+    }
+
+    async function copyCode() {
+        const code = document.getElementById('tg-code').textContent;
+        await navigator.clipboard.writeText('/link ' + code);
+        const btn = event.target;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+    }
+
+    async function unlinkTelegram() {
+        if (!confirm('Unlink your Telegram account?')) return;
+        await fetch('{% url "telegram_unlink" %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCookie('csrftoken')},
+        });
+        location.reload();
+    }
 </script>
 {% endblock %}

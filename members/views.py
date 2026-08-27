@@ -5,7 +5,9 @@ from django.contrib.auth import update_session_auth_hash
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.shortcuts import redirect
+from django.http import JsonResponse
 from django import forms
+import secrets
 from .models import Member
 from core.mixins import BoardOrAdminMixin, AdminRequiredMixin
 
@@ -131,3 +133,22 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             else:
                 messages.error(request, 'Please correct the errors below.')
         return redirect('profile')
+
+
+def generate_telegram_code(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    code = secrets.token_hex(4).upper()
+    request.user.telegram_link_code = code
+    request.user.telegram_id = None
+    request.user.save()
+    return JsonResponse({'code': code})
+
+
+def unlink_telegram(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    request.user.telegram_id = None
+    request.user.telegram_link_code = None
+    request.user.save()
+    return JsonResponse({'ok': True})

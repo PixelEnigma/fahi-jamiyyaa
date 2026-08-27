@@ -12,4 +12,6 @@ urlpatterns = [
     path('<int:pk>/delete/', views.MemberDeleteView.as_view(), name='member_delete'),
     path('<int:pk>/card/', business_card.business_card, name='business_card'),
     path('export/csv/', export.export_members_csv, name='member_export_csv'),
+    path('telegram/generate-code/', views.generate_telegram_code, name='telegram_generate_code'),
+    path('telegram/unlink/', views.unlink_telegram, name='telegram_unlink'),
 ]
